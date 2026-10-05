@@ -1,0 +1,6 @@
+.env
+*.env
+bin/
+dist/
+debater
+.DS_Store
