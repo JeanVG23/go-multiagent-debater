@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"debater/agt"
 	"debater/env"
@@ -48,34 +49,43 @@ func main() {
 
 	moderator.RunDebate()
 
-	// Canal local pour recevoir les réponses du synthétiseur et du juge
-	mainChan := make(chan agt.Message)
+	// 6. Summarizer et Juge parallèle
 
-	// 6. Demande de synthèse au Summarizer
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	var summaryContent, verdictContent string
+
+	summaryChan := make(chan agt.Message, 1)
+	go func() {
+		defer wg.Done()
+		msg := <-summaryChan
+		summaryContent = msg.Content
+	}()
+
+	judgeChan := make(chan agt.Message, 1)
+	go func() {
+		defer wg.Done()
+		msg := <-judgeChan
+		verdictContent = msg.Content
+	}()
+
+	summarizer.InChan() <- agt.Message{From: "Main", Type: agt.Summarize, Reply: summaryChan}
+	judge.InChan() <- agt.Message{From: "Main", Type: agt.Verdict, Reply: judgeChan}
+
+	wg.Wait()
+
 	fmt.Println("\n--------------------------------------------------")
 	fmt.Println("   SYNTHÈSE DU DÉBAT (AGENT SYNTHÉTISEUR)         ")
 	fmt.Println("--------------------------------------------------")
-	summarizer.InChan() <- agt.Message{
-		From:  "Main",
-		Type:  agt.Summarize,
-		Reply: mainChan,
-	}
-	summaryMsg := <-mainChan
-	fmt.Println(summaryMsg.Content)
+	fmt.Println(summaryContent)
 
-	// 7. Demande du verdict final au Juge
 	fmt.Println("\n--------------------------------------------------")
 	fmt.Println("   VERDICT FINAL (AGENT JUGE)                     ")
 	fmt.Println("--------------------------------------------------")
-	judge.InChan() <- agt.Message{
-		From:  "Main",
-		Type:  agt.Verdict,
-		Reply: mainChan,
-	}
-	verdictMsg := <-mainChan
-	fmt.Println(verdictMsg.Content)
+	fmt.Println(verdictContent)
 
-	// 8. Arrêt propre des agents restants
+	// 7. Arrêt propre des agents restants
 	summarizer.InChan() <- agt.Message{Type: agt.Stop}
 	judge.InChan() <- agt.Message{Type: agt.Stop}
 
