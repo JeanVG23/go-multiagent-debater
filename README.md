@@ -2,19 +2,22 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.23%2B-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![Groq API](https://img.shields.io/badge/LLM-Groq%20Cloud-F55036?style=flat)](https://groq.com/)
-[![Architecture](https://img.shields.io/badge/Architecture-Multi--Agent%20System-blueviolet?style=flat)]()
+[![Course](https://img.shields.io/badge/Academic-IA04%20Multi--Agent%20Systems-purple?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A concurrent **Multi-Agent System (MAS)** in Go that simulates structured, argumentative debates between autonomous AI personas. Powered by **Groq Cloud LLMs**, agents communicate asynchronously via **goroutines** and **Go channels**, sharing a thread-safe blackboard environment.
+Projet académique développé dans le cadre de l'UV **IA04 (Systèmes Multi-Agents)** explorant la modélisation de systèmes multi-agents et l'initiation aux paradigmes de concurrence en **Go** (goroutines, canaux typés, synchronisation mémoire).
+
+Le projet simule une arène de débat contradictoire structurée entre des personas IA autonomes propulsées par l'API **Groq Cloud**. Chaque agent s'exécute dans sa propre boucle concurrente (goroutine worker) et communique par passage de messages typés, orchestré selon un protocole délibératif au tour par tour.
 
 ---
 
-## 🌟 Highlights
+## 🌟 Points Clés & Paradigmes Explorés
 
-- **Concurrence & Asynchronisme** : Chaque agent fonctionne comme un processus indépendant via des **goroutines** et communique par passage de messages sur des **canaux Go typés** (`chan Message`).
-- **Environnement Partagé Thread-Safe** : Gestion du tableau noir (*blackboard transcript*) protégée par un `sync.RWMutex` pour garantir l'absence de *data races* lors des accès concurrents.
-- **Inférence LLM Ultra-Rapide** : Client HTTP natif Go connecté à l'API **Groq** pour une génération de répliques et d'analyses en temps réel.
-- **Rôles Dialectiques Spécialisés** : Modération dynamique, argumentation contradictoire contradictoire (thèse / antithèse), synthèse neutre et arbitrage impartial.
+- **Apprentissage des Primitives Concurrentes** : Modélisation d'agents indépendants s'exécutant dans des **goroutines** dédiées et communiquant par passage de messages sur des **canaux Go typés** (`chan Message`).
+- **Environnement Partagé Thread-Safe (Blackboard)** : Gestion d'un tableau noir partagé protégé par un `sync.RWMutex` pour garantir l'intégrité des accès concurrents (lectures concurrentes par les agents observateurs, écriture contrôlée par le modérateur).
+- **Architecture Multi-Agents Formelle** : Implémentation du cycle canonique **Perception - Délibération - Action** pour chaque entité du système.
+- **Rôles Dialectiques Spécialisés** : Modération, argumentation contradictoire contrainte (thèse / antithèse), synthèse neutre et arbitrage impartial.
+- **Inférence LLM Ultra-Rapide** : Client HTTP natif Go connecté à **Groq** pour une génération temps réel avec personas et contraintes de prompt strictes.
 
 ---
 
@@ -49,13 +52,13 @@ A concurrent **Multi-Agent System (MAS)** in Go that simulates structured, argum
 
 ### 🎭 Rôles des Agents
 
-| Agent | Rôle & Responsabilité | Comportement & Modèle |
+| Agent | Rôle & Responsabilité | Comportement & Cycle |
 | :--- | :--- | :--- |
-| **Moderator (Socrate)** | Maître de cérémonie | Coordonne les tours de parole, lance les rounds de débat, sollicite la synthèse et le verdict. |
-| **Debater POUR (Alice)** | Défenseur de la thèse | Formule des arguments convaincants, réfute les objections de l'adversaire et s'appuie sur l'historique. |
-| **Debater CONTRE (Bob)** | Opposant contradictoire | Contredit les arguments adverses, propose des contre-exemples et soulève les limites pratiques/morales. |
-| **Summarizer (Hermès)** | Synthétiseur neutre | Extrait les points de convergence et de divergence majeurs sans prendre parti. |
-| **Judge (Rhadamanthe)** | Juge arbitre | Évalue la rigueur logique, la qualité rhétorique et délivre un verdict motivé avec déclaration du vainqueur. |
+| **Moderator (Socrate)** | Maître de cérémonie | Coordonne les tours de parole, applique le protocole de débat, sollicite la synthèse et le verdict. |
+| **Debater POUR (Alice)** | Défenseur de la thèse | Perçoit l'état du débat, formule des arguments convaincants et réfute les objections adverses. |
+| **Debater CONTRE (Bob)** | Opposant contradictoire | Perçoit l'état du débat, contredit les arguments adverses et soulève les limites pratiques/morales. |
+| **Summarizer (Hermès)** | Synthétiseur neutre | Extrait les points de convergence et de divergence majeurs sans parti pris. |
+| **Judge (Rhadamanthe)** | Juge arbitre | Évalue la rigueur logique et rhétorique, délivre un verdict motivé et désigne le vainqueur. |
 
 ---
 
@@ -64,23 +67,46 @@ A concurrent **Multi-Agent System (MAS)** in Go that simulates structured, argum
 ```text
 debater/
 ├── agt/               # Définitions et logique des agents autonomes
-│   ├── types.go       # Types de messages (GiveFloor, Argument, Summarize, Verdict)
-│   ├── debater.go     # Agent débatteur (persona POUR/CONTRE)
-│   ├── moderator.go   # Agent modérateur
+│   ├── types.go       # Messages typés (GiveFloor, Argument, Summarize, Verdict, Stop)
+│   ├── debater.go     # Agent débatteur (cycle perception-délibération-action)
+│   ├── moderator.go   # Agent modérateur orchestrateur
 │   ├── summarizer.go  # Agent de synthèse neutre
 │   └── judge.go       # Agent juge / arbitre
 ├── cmd/               # Points d'entrée exécutables
-│   ├── simu/          # Simulation complète (Main de production)
-│   ├── tst-agt/       # Tests unitaires / fonctionnels inter-agents
-│   └── tst-groq/      # Validation de connectivité avec l'API Groq
-├── env/               # Environnement partagé thread-safe (RWMutex)
+│   ├── simu/          # Point d'entrée principal de la simulation de débat
+│   ├── tst-agt/       # Script de validation rapide des échanges inter-agents
+│   └── tst-groq/      # Script de validation de la connectivité API Groq
+├── env/               # Environnement partagé thread-safe (Blackboard avec RWMutex)
 │   └── env.go
-├── net/               # Client HTTP REST pour l'API Groq
+├── net/               # Client HTTP REST natif pour l'API Groq
 │   └── client.go
-├── .env.example       # Modèle de configuration des variables d'environnement
+├── .env.example       # Modèle de variables d'environnement
 ├── go.mod
 └── README.md
 ```
+
+---
+
+## 🎯 Contexte & Objectifs Pédagogiques
+
+Ce projet a été conçu dans le cadre du cours de **Systèmes Multi-Agents (IA04)** à l'Université de Technologie de Compiègne (UTC).
+
+Les objectifs d'apprentissage principaux étaient :
+1. **L'exploration des paradigmes concurrents en Go** : mise en place de structures d'agents autonomes basées sur des boucles d'écoute concurrentes et l'échange de messages typés sur canaux.
+2. **La coordination d'agents hétérogènes** : définition d'un protocole d'interaction délibératif (attribution de parole, recueil des arguments, passage de témoin).
+3. **La gestion de mémoire partagée concurrente** : conception d'un tableau noir (*Blackboard*) sécurisé par verrous R/W pour prévenir les accès concurrents non synchronisés.
+4. **L'intégration pragmatique de LLMs** : cadrage de modèles de langage par des rôles dialectiques et des contraintes d'évaluation rigides.
+
+---
+
+## 🔭 Limites Identifiées & Perspectives d'Évolution
+
+Dans une démarche d'ingénierie logicielle et de recul critique sur l'architecture :
+
+- **Orchestration Tour par Tour vs Plein Asynchronisme** : Bien que chaque agent dispose de sa propre goroutine et de son canal d'entrée, l'orchestration par le modérateur demeure pour l'instant synchrone au niveau logique (attente de la réponse avant d'attribuer le tour suivant). Une perspective d'évolution est d'implémenter un protocole asynchrone avec interruptions et demandes spontanées de droit de réponse.
+- **Parallélisation de l'Évaluation (Fan-out / Fan-in)** : Permettre à un jury composé de multiples agents d'évaluer le débat en parallèle à chaque tour à l'aide de `sync.WaitGroup`.
+- **Gestion de Cycle de Vie avec `context.Context`** : Intégrer la propagation de contextes pour la gestion fine des timeouts d'inférence HTTP et l'arrêt contrôlé (*graceful shutdown*) de l'ensemble des goroutines.
+- **Suite de Tests Découplée** : Remplacer les scripts de validation manuels par des tests Go idiomatiques (`go test -race ./...`) s'appuyant sur des interfaces et des mocks de transport HTTP (`httptest.Server`).
 
 ---
 
@@ -88,7 +114,7 @@ debater/
 
 ### 1. Prérequis
 - [Go 1.23+](https://go.dev/dl/)
-- Une clé d'API [Groq Cloud](https://console.groq.com/keys) (gratuite)
+- Une clé d'API [Groq Cloud](https://console.groq.com/keys)
 
 ### 2. Installation
 ```bash
@@ -101,12 +127,12 @@ Créez votre fichier d'environnement `.env` à la racine du projet :
 ```bash
 cp .env.example .env
 ```
-Puis renseignez votre clé d'API Groq dans `.env` :
+Renseignez votre clé d'API Groq dans `.env` :
 ```env
 GROQ_API_KEY=gsk_votre_cle_api_groq_ici
 ```
 
-### 4. Lancer la simulation de débat
+### 4. Lancer la simulation
 ```bash
 go run cmd/simu/main.go
 ```
@@ -148,12 +174,12 @@ Verdict de Rhadamanthe :
 
 ---
 
-## 🛠️ Stack Technique
+## 🛠️ Stack & Concepts
 
 - **Langage** : Go (Golang)
-- **Modèles de langage testés** : `openai/gpt-oss-20b`, `llama-3.3-70b-versatile`, `mixtral-8x7b-32768` via Groq
-- **Design Patterns** : Actor Pattern (Agent Goroutine Loop), Blackboard Architecture, Producer-Consumer (Channels)
-- **Gestion des dépendances** : Go Modules (`godotenv`)
+- **Modèles LLM** : `openai/gpt-oss-20b`, `llama-3.3-70b-versatile` via Groq Cloud
+- **Paradigmes** : Agent Worker Loops (Goroutines), Communication par canaux (`chan Message`), Blackboard Pattern (`sync.RWMutex`)
+- **Dépendances** : `github.com/joho/godotenv`
 
 ---
 
@@ -166,4 +192,4 @@ Verdict de Rhadamanthe :
 
 ## 📄 Licence
 
-Ce projet est sous licence MIT. Libre d'utilisation et d'adaptation.
+Ce projet est sous licence MIT.

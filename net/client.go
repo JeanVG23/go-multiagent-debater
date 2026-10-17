@@ -1,4 +1,4 @@
-package com
+package net
 
 import (
 	"bytes"

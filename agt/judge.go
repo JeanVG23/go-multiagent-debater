@@ -1,12 +1,11 @@
 package agt
 
 import (
+	"debater/env"
+	"debater/net"
 	"fmt"
 	"log"
 	"strings"
-
-	"debater/env"
-	net "debater/net"
 )
 
 type JudgeAgent struct {
@@ -27,42 +26,44 @@ func NewJudgeAgent(id string, model string, client *net.ClientGroq, environment 
 	}
 }
 
-func (j *JudgeAgent) ID() string {
-	return j.id
+func (ja *JudgeAgent) ID() string {
+	return ja.id
 }
 
-func (j *JudgeAgent) InChan() chan<- Message {
-	return j.inChan
+func (ja *JudgeAgent) InChan() chan<- Message {
+	return ja.inChan
 }
 
-func (j *JudgeAgent) Start() {
+func (ja *JudgeAgent) Start() {
 	go func() {
-		log.Printf("[%s] Juge démarré (Modèle: %s)", j.id, j.model)
+		log.Printf("[%s] Juge démarré (Modèle: %s)", ja.id, ja.model)
 
-		for msg := range j.inChan {
+		for msg := range ja.inChan {
 			switch msg.Type {
 			case Verdict:
-				transcript := j.Percept()
-				verdictText, err := j.Deliberate(transcript)
+				transcript := ja.Percept()
+
+				verdictText, err := ja.Deliberate(transcript)
 				if err != nil {
-					log.Printf("[%s] Erreur délibération: %v", j.id, err)
+					log.Printf("[%s] Erreur délibération: %v", ja.id, err)
 					verdictText = "Erreur lors de la délibération du juge."
 				}
-				j.Act(msg.Reply, verdictText)
+
+				ja.Act(msg.Reply, verdictText)
 
 			case Stop:
-				log.Printf("[%s] Arrêt du juge.", j.id)
+				log.Printf("[%s] Arrêt du juge.", ja.id)
 				return
 			}
 		}
 	}()
 }
 
-func (j *JudgeAgent) Percept() string {
-	return j.env.FormatTranscript()
+func (ja *JudgeAgent) Percept() string {
+	return ja.env.FormatTranscript()
 }
 
-func (j *JudgeAgent) Deliberate(transcript string) (string, error) {
+func (ja *JudgeAgent) Deliberate(transcript string) (string, error) {
 	systemPrompt := fmt.Sprintf(`Tu es %s, un juge d'éloquence et de débat contradictoire impartial, rigoureux et neutre.
 Thème du débat : "%s".
 Critères d'évaluation :
@@ -72,8 +73,8 @@ Critères d'évaluation :
 
 Consignes :
 - Fais une analyse brève des prestations de chaque côté (POUR et CONTRE).
-- Déclare clairement le gagnant : Gagnant : [Nom ou Camp] (ou Égalité si vraiment impossible de départager).
-- Justifie ton choix en 2 à 3 points clés.`, j.id, j.env.Topic())
+- Déclare clairement le gagnant : Gagnant : [Nom ou Camp] (ou Égalité si impossible de départager).
+- Justifie ton choix en 2 à 3 points clés.`, ja.id, ja.env.Topic())
 
 	userPrompt := fmt.Sprintf(`Voici l'intégralité du débat :
 ----------------------------------------
@@ -82,22 +83,20 @@ Consignes :
 
 Donne ton analyse et ton verdict final :`, transcript)
 
-	response, err := j.client.Query(j.model, systemPrompt, userPrompt)
+	response, err := ja.client.Query(ja.model, systemPrompt, userPrompt)
 	if err != nil {
 		return "", err
 	}
-
 	return strings.TrimSpace(response), nil
 }
 
-func (j *JudgeAgent) Act(replyChan chan<- Message, content string) {
+func (ja *JudgeAgent) Act(replyChan chan<- Message, content string) {
 	if replyChan == nil {
-		log.Printf("[%s] Aucun canal de réponse fourni.", j.id)
+		log.Printf("[%s] Attention: aucun canal de réponse fourni.", ja.id)
 		return
 	}
-
 	replyChan <- Message{
-		From:    j.id,
+		From:    ja.id,
 		Type:    Verdict,
 		Content: content,
 	}
